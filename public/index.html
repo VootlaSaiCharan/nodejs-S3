@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<!-- ... head section remains the same ... -->
+<body>
+    <div class="container">
+        <h2>Image Upload to S3</h2>
+         <div class="upload-section">
+            <input type="file" id="image" accept="image/*">
+            <button class="button" id="upload-button">Upload Image</button>
+        </div>
+        <div id="status"></div>
+        <div class="image-preview">
+            <img src="" id="image-preview" alt="Uploaded Image">
+        </div>
+        <button class="button" id="view-button" style="display: none;">View Image</button>
+    </div>
+
+    <script>
+        let currentImageKey = ''; // Store the uploaded image key
+
+        const uploadButton = document.getElementById('upload-button');
+        const viewButton = document.getElementById('view-button');
+        const imagePreview = document.getElementById('image-preview');
+        const statusDiv = document.getElementById('status');
+
+        uploadButton.addEventListener('click', async () => {
+            const fileInput = document.getElementById('image');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                statusDiv.textContent = 'Please select a file first!';
+                return;
+            }
+
+            try {
+                const formData = new FormData();
+                formData.append('image', file);
+
+                const response = await fetch('/upload', { method: 'POST', body: formData });
+                const result = await response.json();
+                if (result.success) {
+                    currentImageKey = result.key;
+                    statusDiv.textContent = `Image uploaded successfully! Key: ${currentImageKey}`;
+                    viewButton.style.display = 'block';
+                } else {
+                    statusDiv.textContent = 'Upload failed!';
+                }
+            } catch (error) {
+                console.error(error);
+                statusDiv.textContent = 'Upload failed!';
+            }
+        });
+
+        viewButton.addEventListener('click', async () => {
+            try {
+                const response = await fetch(`/view-image/${encodeURIComponent(currentImageKey)}`);
+                const result = await response.json();
+                imagePreview.src = result.url;
+            } catch (error) {
+                console.error(error);
+                statusDiv.textContent = 'Failed to generate URL!';
+            }
+        });
+    </script>
+</body>
+</html>
