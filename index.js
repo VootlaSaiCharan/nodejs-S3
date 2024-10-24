@@ -82,7 +82,7 @@ app.get('/view-image/:key(*)', async (req, res) => {
 
         try {
             // Check if the object exists first
-            await s3.headObject({ Bucket: '11oct.aws', Key: key }).promise();
+            await s3.headObject({ Bucket: process.env.AWS_BUCKET_NAME, Key: key }).promise();
             
             const url = await s3.getSignedUrlPromise('getObject', params);
             res.json({ url });
