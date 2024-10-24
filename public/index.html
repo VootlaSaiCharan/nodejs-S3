@@ -1,16 +1,21 @@
 <!DOCTYPE html>
 <html lang="en">
-<!-- ... head section remains the same ... -->
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Upload to S3</title>
+    <link rel="stylesheet" href="style.css"> <!-- Link to external CSS -->
+</head>
 <body>
     <div class="container">
         <h2>Image Upload to S3</h2>
-         <div class="upload-section">
+        <div class="upload-section">
             <input type="file" id="image" accept="image/*">
             <button class="button" id="upload-button">Upload Image</button>
         </div>
-        <div id="status"></div>
-        <div class="image-preview">
-            <img src="" id="image-preview" alt="Uploaded Image">
+        <div id="status" class="status-message"></div>
+        <div class="image-preview" id="image-preview-container" style="display: none;">
+            <img src="" id="image-preview" alt="Uploaded Image" class="preview-image">
         </div>
         <button class="button" id="view-button" style="display: none;">View Image</button>
     </div>
@@ -21,6 +26,7 @@
         const uploadButton = document.getElementById('upload-button');
         const viewButton = document.getElementById('view-button');
         const imagePreview = document.getElementById('image-preview');
+        const imagePreviewContainer = document.getElementById('image-preview-container');
         const statusDiv = document.getElementById('status');
 
         uploadButton.addEventListener('click', async () => {
@@ -28,7 +34,7 @@
             const file = fileInput.files[0];
             
             if (!file) {
-                statusDiv.textContent = 'Please select a file first!';
+                statusDiv.textContent = 'Please upload a file first!';
                 return;
             }
 
@@ -42,6 +48,7 @@
                     currentImageKey = result.key;
                     statusDiv.textContent = `Image uploaded successfully! Key: ${currentImageKey}`;
                     viewButton.style.display = 'block';
+                    imagePreviewContainer.style.display = 'none'; // Show the image preview container
                 } else {
                     statusDiv.textContent = 'Upload failed!';
                 }
@@ -56,6 +63,8 @@
                 const response = await fetch(`/view-image/${encodeURIComponent(currentImageKey)}`);
                 const result = await response.json();
                 imagePreview.src = result.url;
+                imagePreview.src = result.url; // Set the image source to the uploaded image URL
+                imagePreviewContainer.style.display = 'block'; // Show the image preview container when viewing the image
             } catch (error) {
                 console.error(error);
                 statusDiv.textContent = 'Failed to generate URL!';

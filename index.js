@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 const express = require('express');
 const aws = require('aws-sdk');
 const fileUpload = require('express-fileupload');
@@ -6,11 +8,29 @@ const app = express();
 const port = 3000;
 
 // Configure AWS
+// const s3 = new aws.S3({
+//     accessKeyId: 'AWS_ACCESS_KEY_ID',
+//     secretAccessKey: 'AWS_SECRET_ACCESS_KEY',
+//     region: 'AWS_REGION'
+// });
+
 const s3 = new aws.S3({
-    accessKeyId: 'AKIAQEFWAO2FU7646RWF',
-    secretAccessKey: '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',
-    region: 'us-east-1'
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+    region: process.env.AWS_REGION // Make sure to include region if necessary
 });
+
+// Function to format date
+function formatDate(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are zero-based
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const seconds = String(date.getSeconds()).padStart(2, '0');
+    
+    return `${year}-${month}-${day}_${hours}-${minutes}-${seconds}`;
+}
 
 // Middleware
 app.use(express.static('public'));
@@ -27,10 +47,14 @@ app.post('/upload', async (req, res) => {
         const file = req.files.image;
         // Remove spaces and special characters from filename
         const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.]/g, '_');
-        const fileName = `images/${Date.now()}-${sanitizedFileName}`;
+        // const fileName = `images/${Date.now()}-${sanitizedFileName}`;
+        const formattedDate = formatDate(new Date());
+        const fileName = `images/${formattedDate}-${sanitizedFileName}`;
+
 
         const params = {
-            Bucket: '11oct.aws',
+            // Bucket: '11oct.aws',
+            Bucket: process.env.AWS_BUCKET_NAME, // Use bucket name from environment variable
             Key: fileName,
             Body: file.data,
             ContentType: file.mimetype
@@ -50,7 +74,8 @@ app.get('/view-image/:key(*)', async (req, res) => {
         console.log('Requested key:', key);
 
         const params = {
-            Bucket: '11oct.aws',
+            // Bucket: '11oct.aws',
+            Bucket: process.env.AWS_BUCKET_NAME, // Use bucket name from environment variable
             Key: key,
             Expires: 60
         };

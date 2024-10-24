@@ -28,7 +28,7 @@ To get started with this project, follow these steps:
    cd your-repo
 2. **Install the dependencies using npm:**
     ```bash
-    npm install express aws-sdk express-fileupload
+    npm install express aws-sdk express-fileupload path dotenv
 3.  **Create an AWS S3 bucket:**
 *   Go to the AWS Management Console and navigate to the S3 dashboard.
 *   Click on "Create bucket" and follow the instructions to create a new bucket.
@@ -40,15 +40,7 @@ To get started with this project, follow these steps:
 *   Choose "Programmatic access" and click on "Next: Review".
 *   Click on "Create user" and note down the Access key ID and Secret access key.
 
-5. **Configure  the AWS credentials & S3 Bucket in your project:**
-      ```bash
-      const aws = require('aws-sdk');
-
-      aws.config.update({
-        accessKeyId: 'YOUR_ACCESS_KEY',
-        secretAccessKey: 'YOUR_SECRET_KEY',
-        region: 'YOUR_REGION'
-      });
-      
-      const s3 = new aws.S3();
-      const bucketName = 'YOUR_BUCKET_NAME';
+5. **Configure  the AWS credentials & S3 Bucket in your project using .env File**
+*   Create a new file named `.env` in the root of your project.
+*   Add the following lines to the file, replacing the placeholders with your actual AWS credentials and S3 Bucket Details. If you are facing issues i have uploaded .env_example file.
+3.  **Start the server:**
