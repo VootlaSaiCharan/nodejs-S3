@@ -102,3 +102,5 @@ Thumbs.db
 
 # Python virtual environment (for mixed projects)
 venv/
+
+uploads
