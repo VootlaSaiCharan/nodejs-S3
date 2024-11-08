@@ -46,5 +46,6 @@ To get started with this project, follow these steps:
 
 6.  **Start the server:**
 *   just type nodemon -- if you install nodemon
-*   npm install nodemon
+    ```bash
+    npm install nodemon
 *   or node index.js -- if you don't install nodemon
