@@ -43,4 +43,8 @@ To get started with this project, follow these steps:
 5. **Configure  the AWS credentials & S3 Bucket in your project using .env File**
 *   Create a new file named `.env` in the root of your project.
 *   Add the following lines to the file, replacing the placeholders with your actual AWS credentials and S3 Bucket Details. If you are facing issues i have uploaded .env_example file.
-3.  **Start the server:**
+
+6.  **Start the server:**
+*   just type nodemon -- if you install nodemon
+*   npm install nodemon
+*   or node index.js -- if you don't install nodemon
