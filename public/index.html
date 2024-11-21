@@ -66,7 +66,7 @@
                 
                 if (result.success) {
                     currentImageId = result.fileId; // Store the file ID
-                    statusDiv.textContent = 'Image uploaded successfully!';
+                    statusDiv.textContent = `Image uploaded successfully! Size: ${result.fileSize} MB`; // Display file size in MB
                     viewButton.style.display = 'block'; // Show view button after successful upload
                     imagePreviewContainer.style.display = 'none'; // Hide preview until view button is clicked
                 } else {
@@ -97,7 +97,7 @@
                 if (result.success && result.file && result.file.s3Url) {
                     imagePreview.src = result.file.s3Url;
                     imagePreviewContainer.style.display = 'flex';
-                    statusDiv.textContent = 'Image loaded successfully!';
+                    statusDiv.textContent = `Image loaded successfully! Size: ${result.file.fileSize} MB`; // Display file size in MB
                 } else {
                     statusDiv.textContent = 'Failed to load image data!';
                     console.error('Invalid response format:', result);
