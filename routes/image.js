@@ -67,14 +67,18 @@ const formatDate = (date) => {
 // Upload route
 imageRouter.post('/upload', upload.single('image'), async (req, res) => {
     try {
+         // Ensure that a file has been uploaded
         if (!req.file) {
             return res.status(400).json({ success: false, error: 'No file uploaded' });
         }
 
+        // The `file` variable is defined here
         const file = req.file;
-        const sanitizedFileName = file.originalname.replace(/[^a-zA-Z0-9.]/g, '_');
-        const formattedDate = formatDate(new Date());
-        const fileName = `images/${formattedDate}-${sanitizedFileName}`;
+        const fileSizeBytes = file.size; // Get the size of the uploaded file in bytes
+        const fileSizeMB = (fileSizeBytes / (1024 * 1024)).toFixed(2); // Convert to MB and round to 2 decimal places
+        const sanitizedFileName = file.originalname.replace(/[^a-zA-Z0-9.]/g, '_'); // Sanitize the original filename 
+        // const fileName = `images/${sanitizedFileName}`;  // Use only the sanitized filename
+        const fileName = sanitizedFileName; // Use the sanitized file name directly
 
         // Upload parameters without ACL
         const uploadParams = {
@@ -99,14 +103,17 @@ imageRouter.post('/upload', upload.single('image'), async (req, res) => {
             Bucket: process.env.AWS_BUCKET_NAME,
             Key: fileName
         });
-        const signedUrl = await getSignedUrl(s3, getObjectCommand, { expiresIn: 3600 });
+        
+        // The Image has to expire in 5min
+        const signedUrl = await getSignedUrl(s3, getObjectCommand, { expiresIn: 300 });
 
         // Save to MongoDB
         const newFile = new File({
             fileName: sanitizedFileName,
             s3Key: fileName,
             s3Url: signedUrl,
-            fileType: file.mimetype
+            fileType: file.mimetype,
+            fileSize: fileSizeMB // Save file size in MB
         });
 
         await newFile.save();
@@ -116,10 +123,12 @@ imageRouter.post('/upload', upload.single('image'), async (req, res) => {
             if (err) console.error('Error deleting temp file:', err);
         });
 
+        // Send back the response including the file size in MB
         res.json({ 
             success: true, 
             fileId: newFile._id,
-            fileUrl: signedUrl
+            fileUrl: signedUrl,
+            fileSize: fileSizeMB // Include file size in MB in response
         });
 
     } catch (error) {
@@ -155,11 +164,13 @@ imageRouter.get('/view-image/:id', async (req, res) => {
             s3Key: file.s3Key
         });
 
+        // Include file size in the response
         res.json({ 
             success: true, 
             file: {
                 ...file.toObject(),
-                s3Url: signedUrl
+                s3Url: signedUrl,
+                fileSize: file.fileSize // Include file size from the database
             }
         });
     } catch (error) {
