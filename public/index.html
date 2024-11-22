@@ -87,24 +87,37 @@
 
             try {
                 statusDiv.textContent = 'Fetching image...';
-                console.log('Fetching image with ID:', currentImageId);
+                imagePreviewContainer.style.display = 'none'; // Hide container while loading
                 
                 const response = await fetch(`/api/images/view-image/${currentImageId}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
                 const result = await response.json();
                 
-                console.log('View response:', result); // Debug log
-                
                 if (result.success && result.file && result.file.s3Url) {
+                    imagePreview.onload = () => {
+                        imagePreviewContainer.style.display = 'flex';
+                        statusDiv.textContent = `Image loaded successfully! Size: ${result.file.fileSize} MB`;
+                    };
+
+                    imagePreview.onerror = (e) => {
+                        console.error('Failed to load image:', e);
+                        statusDiv.textContent = 'Failed to load image preview';
+                        imagePreviewContainer.style.display = 'none';
+                    };
+
+                    // Clear the previous src before setting the new one
+                    imagePreview.src = '';
                     imagePreview.src = result.file.s3Url;
-                    imagePreviewContainer.style.display = 'flex';
-                    statusDiv.textContent = `Image loaded successfully! Size: ${result.file.fileSize} MB`; // Display file size in MB
                 } else {
-                    statusDiv.textContent = 'Failed to load image data!';
-                    console.error('Invalid response format:', result);
+                    throw new Error('Invalid image data received');
                 }
             } catch (error) {
                 console.error('View error:', error);
-                statusDiv.textContent = 'Failed to load image! Check console for details.';
+                statusDiv.textContent = `Failed to load image: ${error.message}`;
+                imagePreviewContainer.style.display = 'none';
             }
         });
     </script>

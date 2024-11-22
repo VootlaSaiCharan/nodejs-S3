@@ -6,6 +6,7 @@ const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 const fs = require('fs'); // Import fs for file system operations
 const multer = require('multer'); // Import multer for file uploads
 const path = require('path');
+const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
 
 // Create uploads directory if it doesn't exist
 const uploadsDir = path.join(__dirname, '../uploads');
@@ -30,7 +31,8 @@ const validateAwsConfig = () => {
         AWS_ACCESS_KEY_ID: process.env.AWS_ACCESS_KEY_ID,
         AWS_SECRET_ACCESS_KEY: process.env.AWS_SECRET_ACCESS_KEY,
         AWS_REGION: process.env.AWS_REGION,
-        AWS_BUCKET_NAME: process.env.AWS_BUCKET_NAME
+        AWS_BUCKET_NAME: process.env.AWS_BUCKET_NAME,
+        AWS_COMPRESSED_BUCKET_NAME: process.env.AWS_COMPRESSED_BUCKET_NAME
     };
 
     const missingVars = Object.entries(requiredEnvVars)
@@ -50,7 +52,8 @@ console.log('AWS Configuration:', {
     region: process.env.AWS_REGION,
     hasAccessKey: !!process.env.AWS_ACCESS_KEY_ID,
     hasSecretKey: !!process.env.AWS_SECRET_ACCESS_KEY,
-    bucketName: process.env.AWS_BUCKET_NAME
+    bucketName: process.env.AWS_BUCKET_NAME,
+    compressedBucketName: process.env.AWS_COMPRESSED_BUCKET_NAME
 });
 
 // Example route (update from `router.get()` to `imageRouter.get()`)
@@ -108,14 +111,16 @@ imageRouter.post('/upload', upload.single('image'), async (req, res) => {
         const signedUrl = await getSignedUrl(s3, getObjectCommand, { expiresIn: 300 });
 
         // Save to MongoDB
+        // After uploading to S3, save to MongoDB with compressed image reference
         const newFile = new File({
             fileName: sanitizedFileName,
             s3Key: fileName,
             s3Url: signedUrl,
+            compressedKey: `resized_${sanitizedFileName}`,
+            compressedUrl: `https://${process.env.AWS_COMPRESSED_BUCKET_NAME}.s3.amazonaws.com/resized_${sanitizedFileName}`,
             fileType: file.mimetype,
-            fileSize: fileSizeMB // Save file size in MB
+            fileSize: fileSizeMB
         });
-
         await newFile.save();
 
         // Clean up temp file
@@ -150,32 +155,35 @@ imageRouter.get('/view-image/:id', async (req, res) => {
             return res.status(404).json({ success: false, error: 'File not found' });
         }
 
-        // Generate a new pre-signed URL
+        // Generate a new pre-signed URL for the compressed image
         const getObjectCommand = new GetObjectCommand({
-            Bucket: process.env.AWS_BUCKET_NAME,
-            Key: file.s3Key
-        });
-        
-        const signedUrl = await getSignedUrl(s3, getObjectCommand, { expiresIn: 3600 });
-
-        console.log('Generated signed URL for viewing:', {
-            fileId: file._id,
-            fileName: file.fileName,
-            s3Key: file.s3Key
+            Bucket: process.env.AWS_COMPRESSED_BUCKET_NAME, // Use compressed bucket
+            Key: file.compressedKey // Use compressed key
         });
 
-        // Include file size in the response
-        res.json({ 
-            success: true, 
+        // Generate a new signed URL that expires in 5 minutes
+        const signedUrl = await getSignedUrl(s3, getObjectCommand, { expiresIn: 300 });
+
+        // Log for debugging
+        console.log('Image details:', {
+            bucket: process.env.AWS_COMPRESSED_BUCKET_NAME,
+            key: file.compressedKey,
+            hasUrl: !!signedUrl
+        });
+
+        res.json({
+            success: true,
             file: {
                 ...file.toObject(),
-                s3Url: signedUrl,
-                fileSize: file.fileSize // Include file size from the database
+                s3Url: signedUrl // Use the new signed URL for compressed image
             }
         });
     } catch (error) {
-        console.error('Error fetching file metadata:', error);
-        res.status(500).json({ success: false, error: error.message });
+        console.error('View image error:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: error.message || 'Failed to fetch image'
+        });
     }
 });
 

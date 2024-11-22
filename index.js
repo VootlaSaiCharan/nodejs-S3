@@ -12,7 +12,8 @@ console.log('Environment variables loaded:', {
     hasAccessKey: !!process.env.AWS_ACCESS_KEY_ID,
     hasSecretKey: !!process.env.AWS_SECRET_ACCESS_KEY,
     region: process.env.AWS_REGION,
-    bucketName: process.env.AWS_BUCKET_NAME
+    bucketName: process.env.AWS_BUCKET_NAME,
+    compressedBucketName: process.env.AWS_COMPRESSED_BUCKET_NAME,
 });
 
 // Rest of your imports
