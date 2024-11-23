@@ -78,7 +78,7 @@ imageRouter.post('/upload', upload.single('image'), async (req, res) => {
         // The `file` variable is defined here
         const file = req.file;
         const fileSizeBytes = file.size; // Get the size of the uploaded file in bytes
-        const fileSizeMB = (fileSizeBytes / (1024 * 1024)).toFixed(2); // Convert to MB and round to 2 decimal places
+        const originalSizeMB = (fileSizeBytes / (1024 * 1024)).toFixed(2); // Convert to MB and round to 2 decimal places
         const sanitizedFileName = file.originalname.replace(/[^a-zA-Z0-9.]/g, '_'); // Sanitize the original filename 
         // const fileName = `images/${sanitizedFileName}`;  // Use only the sanitized filename
         const fileName = sanitizedFileName; // Use the sanitized file name directly
@@ -119,7 +119,8 @@ imageRouter.post('/upload', upload.single('image'), async (req, res) => {
             compressedKey: `resized_${sanitizedFileName}`,
             compressedUrl: `https://${process.env.AWS_COMPRESSED_BUCKET_NAME}.s3.amazonaws.com/resized_${sanitizedFileName}`,
             fileType: file.mimetype,
-            fileSize: fileSizeMB
+            originalSize: originalSizeMB,
+            compressedSize: originalSizeMB // Will be updated when compression is complete
         });
         await newFile.save();
 
@@ -133,7 +134,8 @@ imageRouter.post('/upload', upload.single('image'), async (req, res) => {
             success: true, 
             fileId: newFile._id,
             fileUrl: signedUrl,
-            fileSize: fileSizeMB // Include file size in MB in response
+            originalSize: originalSizeMB,
+            compressedSize: originalSizeMB // Initially same as original
         });
 
     } catch (error) {
@@ -157,25 +159,32 @@ imageRouter.get('/view-image/:id', async (req, res) => {
 
         // Generate a new pre-signed URL for the compressed image
         const getObjectCommand = new GetObjectCommand({
-            Bucket: process.env.AWS_COMPRESSED_BUCKET_NAME, // Use compressed bucket
-            Key: file.compressedKey // Use compressed key
+            Bucket: process.env.AWS_COMPRESSED_BUCKET_NAME,
+            Key: file.compressedKey
         });
 
-        // Generate a new signed URL that expires in 5 minutes
+        // Get the metadata of the compressed image and update the compressed size
+        try {
+            const compressedImageData = await s3.send(getObjectCommand);
+            const compressedSizeBytes = compressedImageData.ContentLength;
+            const compressedSizeMB = (compressedSizeBytes / (1024 * 1024)).toFixed(2);
+            
+            // Update the compressed size in the database if it's different
+            if (file.compressedSize !== compressedSizeMB) {
+                file.compressedSize = compressedSizeMB;
+                await file.save();
+            }
+        } catch (error) {
+            console.error('Error getting compressed image metadata:', error);
+        }
+
         const signedUrl = await getSignedUrl(s3, getObjectCommand, { expiresIn: 300 });
-
-        // Log for debugging
-        console.log('Image details:', {
-            bucket: process.env.AWS_COMPRESSED_BUCKET_NAME,
-            key: file.compressedKey,
-            hasUrl: !!signedUrl
-        });
 
         res.json({
             success: true,
             file: {
                 ...file.toObject(),
-                s3Url: signedUrl // Use the new signed URL for compressed image
+                s3Url: signedUrl
             }
         });
     } catch (error) {

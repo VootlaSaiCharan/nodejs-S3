@@ -7,7 +7,8 @@ const fileSchema = new mongoose.Schema({
     compressedKey: { type: String, required: true },
     compressedUrl: { type: String, required: true },
     fileType: { type: String, required: true },
-    fileSize: { type: Number, required: true },
+    originalSize: { type: Number, required: true },
+    compressedSize: { type: Number, required: true },
 }, { timestamps: true });
 
 module.exports = mongoose.model('File', fileSchema);

@@ -65,10 +65,10 @@
                 const result = await response.json();
                 
                 if (result.success) {
-                    currentImageId = result.fileId; // Store the file ID
-                    statusDiv.textContent = `Image uploaded successfully! Size: ${result.fileSize} MB`; // Display file size in MB
-                    viewButton.style.display = 'block'; // Show view button after successful upload
-                    imagePreviewContainer.style.display = 'none'; // Hide preview until view button is clicked
+                    currentImageId = result.fileId;
+                    statusDiv.textContent = `Image uploaded successfully! Original Size: ${result.originalSize} MB`;
+                    viewButton.style.display = 'block';
+                    imagePreviewContainer.style.display = 'none';
                 } else {
                     statusDiv.textContent = `Upload failed: ${result.error}`;
                 }
@@ -87,7 +87,7 @@
 
             try {
                 statusDiv.textContent = 'Fetching image...';
-                imagePreviewContainer.style.display = 'none'; // Hide container while loading
+                imagePreviewContainer.style.display = 'none';
                 
                 const response = await fetch(`/api/images/view-image/${currentImageId}`);
                 if (!response.ok) {
@@ -99,7 +99,7 @@
                 if (result.success && result.file && result.file.s3Url) {
                     imagePreview.onload = () => {
                         imagePreviewContainer.style.display = 'flex';
-                        statusDiv.textContent = `Image loaded successfully! Size: ${result.file.fileSize} MB`;
+                        statusDiv.textContent = `Image loaded successfully! Original Size: ${result.file.originalSize} MB, Compressed Size: ${result.file.compressedSize} MB`;
                     };
 
                     imagePreview.onerror = (e) => {
@@ -108,7 +108,6 @@
                         imagePreviewContainer.style.display = 'none';
                     };
 
-                    // Clear the previous src before setting the new one
                     imagePreview.src = '';
                     imagePreview.src = result.file.s3Url;
                 } else {
